@@ -24,6 +24,16 @@ const runtime = {
   },
 
   console: console,
+  Math: Math,
+  JSON: JSON,
+  Date: Date,
+  parseInt: parseInt,
+  parseFloat: parseFloat,
+  String: String,
+  Number: Number,
+  Boolean: Boolean,
+  Array: Array,
+  Object: Object,
 
   // Collection & utility helpers
   len: (item) => (item && item.length !== undefined ? item.length : 0),

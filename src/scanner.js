@@ -4,19 +4,18 @@ const baseLexer = moo.compile({
   ws: { match: /[ \t\r\n]+/, lineBreaks: true },
   comment: { match: /\/\/.*|\/\*[\s\S]*?\*\//, lineBreaks: true },
   number: /0|[1-9][0-9]*(?:\.[0-9]+)?/,
+  template_string: {
+    match: /`(?:\\[\s\S]|[^`\\])*`/,
+    lineBreaks: true,
+  },
   string: /"(?:\\["\\]|[^\n"\\])*"|'(?:\\['\\]|[^\n'\\])*'/,
 
   // Use moo.keywords attached to identifiers to prevent prefix clashes
   identifier: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
     type: moo.keywords({
-      kw_fn: [
-        "function", "def", "fn", "fun", "func", "procedure", "proc", "void", "sub", "method"
-      ],
-      kw_var: [
-        "let", "const", "var", "val", "auto", "int", "float", "double", "string",
-        "bool", "boolean", "char", "byte", "long", "short", "dynamic", "my"
-      ],
+      kw_fn: ["function", "def", "fn", "fun", "func", "procedure", "proc", "void", "sub", "method"],
+      kw_var: ["let", "const", "var", "val", "auto", "int", "float", "double", "string", "bool", "boolean", "char", "byte", "long", "short", "dynamic", "my"],
       kw_if: ["if", "when", "unless"],
       kw_else: ["else", "otherwise", "elif", "elsif"],
       kw_while: ["while", "until", "repeat"],
@@ -71,10 +70,7 @@ class AnyLangLexer {
       // Check Allman brace style: '{' MUST be on a new line after the previous token
       if (this.options.enforceAllmanBraces && token.type === "lbrace") {
         if (this.prevToken && token.line === this.prevToken.line) {
-          throw new Error(
-            `AnyLang Syntax Error at line ${token.line}, col ${token.col}: ` +
-            `Opening brace '{' MUST be on a new line (Allman / Microsoft style)!`
-          );
+          throw new Error(`AnyLang Syntax Error at line ${token.line}, col ${token.col}: ` + `Opening brace '{' MUST be on a new line (Allman / Microsoft style)!`);
         }
       }
 

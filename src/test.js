@@ -80,7 +80,64 @@ try {
   console.error("Failed: Parser accepted non-Allman brace!");
 } catch (err) {
   console.log("Successfully caught Allman brace violation:");
-  console.log("   " + err.message);
+  console.log("   " + err.message + "\n");
+}
+
+// 6. Test Unison-Style Semantic AST Hashing & Codebase Store
+console.log("6. Testing Unison Content-Addressed Codebase & AST Hashing:");
+const { hashAST, CodebaseStore } = require("./index.js");
+
+// Two functions written with completely different keywords/dialects
+const fn1 = parse(`
+def addNumbers(x, y)
+{
+  return x + y;
+}
+`).body[0];
+
+const fn2 = parse(`
+fn addNumbers(x, y)
+{
+  give x + y;
+}
+`).body[0];
+
+const hash1 = hashAST(fn1);
+const hash2 = hashAST(fn2);
+
+console.log(`  fn1 ('def' / 'return') hash: #${hash1.slice(0, 8)}`);
+console.log(`  fn2 ('fn'  / 'give'  ) hash: #${hash2.slice(0, 8)}`);
+
+if (hash1 === hash2) {
+  console.log("  Success: Semantic AST normalization produced identical content hashes across dialects!");
+} else {
+  console.error("  Failure: Semantic AST hashes did not match!");
+}
+
+// In-Memory SQLite Codebase Store Test
+const testStore = new CodebaseStore(":memory:");
+testStore.saveTerm("addNumbers", fn1, "function", "math");
+const loaded = testStore.getTermByName("addNumbers", "math");
+console.log(`  Loaded from SQLite: ${loaded.name} (${loaded.shortHash})`);
+
+testStore.renameTerm("addNumbers", "sum", "math");
+const renamed = testStore.getTermByName("sum", "math");
+console.log(`  Renamed alias to 'sum': points to same hash ${renamed.shortHash}`);
+testStore.close();
+
+// 7. Test Template Literals & Print Dialect Normalization
+console.log("\n7. Testing Template Literals & Print Dialect Normalization:");
+const templateCode = `
+val user = "Ada";
+val role = "Pioneer";
+val greeting = \`Hello \${user}, welcome as \${role}!\`;
+echo(greeting);
+`;
+const templateAst = parse(templateCode);
+const rustTemplate = formatDialect(templateAst, "rust");
+console.log("  Rust Projection:\n" + rustTemplate);
+if (rustTemplate.includes('format!("Hello {user}, welcome as {role}!")') && rustTemplate.includes('println!("{}", greeting)')) {
+  console.log("  Success: Template literal & print normalized correctly for Rust!");
 }
 
 console.log("\nAll AnyLang tests passed!");

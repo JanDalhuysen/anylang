@@ -1,6 +1,67 @@
 // Unison-style Dialect Formatter / Semantic Code Projector
 // Transforms the canonical AST into any target language syntax flavor
 
+function getCalleePath(node) {
+  if (!node) return "";
+  if (node.type === "Identifier") return node.name;
+  if (node.type === "MemberExpression") {
+    const objPath = getCalleePath(node.object);
+    return objPath ? `${objPath}.${node.property}` : node.property;
+  }
+  return "";
+}
+
+const PRINT_FUNCTIONS = new Set(["print", "println", "echo", "puts", "printf", "console.log", "fmt.Println", "fmt.Print", "fmt.Printf", "System.out.println", "System.out.print"]);
+
+function formatPrintCall(calleePath, args, dialect) {
+  const isNoNewline = calleePath === "print" || calleePath === "fmt.Print" || calleePath === "System.out.print";
+
+  if (dialect === "rust") {
+    const macroName = isNoNewline ? "print!" : "println!";
+    if (args.length === 0) {
+      return `${macroName}()`;
+    }
+    if (args.length === 1) {
+      const arg = args[0];
+      if (arg.type === "Literal" && typeof arg.value === "string" && !arg.value.includes("{") && !arg.value.includes("}")) {
+        return `${macroName}(${JSON.stringify(arg.value)})`;
+      }
+      return `${macroName}("{}", ${formatDialect(arg, dialect, 0)})`;
+    }
+    const placeholders = args.map(() => "{}").join(" ");
+    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    return `${macroName}("${placeholders}", ${formattedArgs})`;
+  }
+
+  if (dialect === "pythonic") {
+    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    if (isNoNewline) {
+      return `print(${formattedArgs}, end="")`;
+    }
+    return `print(${formattedArgs})`;
+  }
+
+  if (dialect === "csharp") {
+    const method = isNoNewline ? "Console.Write" : "Console.WriteLine";
+    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    return `${method}(${formattedArgs})`;
+  }
+
+  if (dialect === "java") {
+    const method = isNoNewline ? "System.out.print" : "System.out.println";
+    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    return `${method}(${formattedArgs})`;
+  }
+
+  if (dialect === "javascript") {
+    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    return `console.log(${formattedArgs})`;
+  }
+
+  const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+  return `println(${formattedArgs})`;
+}
+
 function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
   if (!ast) return "";
   const indent = "  ".repeat(indentLevel);
@@ -35,9 +96,7 @@ function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
     }
 
     case "Block": {
-      const inner = ast.body
-        .map((stmt) => formatDialect(stmt, dialect, indentLevel + 1))
-        .join("\n");
+      const inner = ast.body.map((stmt) => formatDialect(stmt, dialect, indentLevel + 1)).join("\n");
       return `${indent}{\n${inner}\n${indent}}`;
     }
 
@@ -86,6 +145,7 @@ function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
         if (op === "&&") op = "and";
         if (op === "||") op = "or";
         if (op === "===") op = "==";
+        if (op === "!==") op = "!=";
       }
       const left = formatDialect(ast.left, dialect, 0);
       const right = formatDialect(ast.right, dialect, 0);
@@ -100,6 +160,22 @@ function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
     }
 
     case "CallExpression": {
+      const calleePath = getCalleePath(ast.callee);
+
+      // Normalize standard library output/print calls into dialect-specific forms
+      if (PRINT_FUNCTIONS.has(calleePath)) {
+        return formatPrintCall(calleePath, ast.arguments, dialect);
+      }
+
+      // Normalize length calls: len(x), size(x), count(x)
+      if ((calleePath === "len" || calleePath === "size" || calleePath === "count") && ast.arguments.length === 1) {
+        const target = formatDialect(ast.arguments[0], dialect, 0);
+        if (dialect === "rust") return `${target}.len()`;
+        if (dialect === "pythonic") return `len(${target})`;
+        if (dialect === "csharp") return `${target}.Length`;
+        if (dialect === "javascript") return `${target}.length`;
+      }
+
       const callee = formatDialect(ast.callee, dialect, 0);
       const args = ast.arguments.map((a) => formatDialect(a, dialect, 0)).join(", ");
       return `${callee}(${args})`;
@@ -121,6 +197,63 @@ function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
         if (ast.value === null) return "None";
       }
       return JSON.stringify(ast.value);
+    }
+
+    case "TemplateLiteral": {
+      if (dialect === "pythonic") {
+        const inner = ast.parts
+          .map((part) => {
+            if (part.type === "Literal") {
+              return part.value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\{/g, "{{").replace(/\}/g, "}}");
+            } else if (part.type === "TemplateExpression") {
+              return `{${part.expression}}`;
+            }
+            return "";
+          })
+          .join("");
+        return `f"${inner}"`;
+      }
+
+      if (dialect === "csharp") {
+        const inner = ast.parts
+          .map((part) => {
+            if (part.type === "Literal") {
+              return part.value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\{/g, "{{").replace(/\}/g, "}}");
+            } else if (part.type === "TemplateExpression") {
+              return `{${part.expression}}`;
+            }
+            return "";
+          })
+          .join("");
+        return `$"${inner}"`;
+      }
+
+      if (dialect === "rust") {
+        const inner = ast.parts
+          .map((part) => {
+            if (part.type === "Literal") {
+              return part.value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\{/g, "{{").replace(/\}/g, "}}");
+            } else if (part.type === "TemplateExpression") {
+              return `{${part.expression}}`;
+            }
+            return "";
+          })
+          .join("");
+        return `format!("${inner}")`;
+      }
+
+      // Default: JavaScript style backtick template literal
+      const inner = ast.parts
+        .map((part) => {
+          if (part.type === "Literal") {
+            return part.value.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+          } else if (part.type === "TemplateExpression") {
+            return `\${${part.expression}}`;
+          }
+          return "";
+        })
+        .join("");
+      return `\`${inner}\``;
     }
 
     default:

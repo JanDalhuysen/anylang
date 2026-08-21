@@ -22,9 +22,7 @@ function transpile(ast, indentLevel = 0) {
     }
 
     case "Block": {
-      const inner = ast.body
-        .map((stmt) => transpile(stmt, indentLevel + 1))
-        .join("\n");
+      const inner = ast.body.map((stmt) => transpile(stmt, indentLevel + 1)).join("\n");
       return `${indent}{\n${inner}\n${indent}}`;
     }
 
@@ -105,6 +103,20 @@ function transpile(ast, indentLevel = 0) {
 
     case "Literal": {
       return JSON.stringify(ast.value);
+    }
+
+    case "TemplateLiteral": {
+      const inner = ast.parts
+        .map((part) => {
+          if (part.type === "Literal") {
+            return part.value.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+          } else if (part.type === "TemplateExpression") {
+            return `\${${part.expression}}`;
+          }
+          return "";
+        })
+        .join("");
+      return `\`${inner}\``;
     }
 
     default:
