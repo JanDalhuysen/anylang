@@ -64,7 +64,24 @@ No matter what standard output function you remember from your favorite language
 - `System.out.println(...)`
 - `fmt.Println(...)`
 - `printf(...)`
-- `len(x)` / `size(x)` / `count(x)` / `x.length`
+
+### 5. Content-Addressed AST Store (Unison-Style Codebase in SQLite)
+
+Like Unison, AnyLang can decouple human-readable names from function definitions by storing canonical ASTs indexed by their cryptographic hash (e.g., SHA-256 of the normalized AST JSON):
+
+- **Zero-Break Refactors**: Changing a function's name only updates the alias table (`name -> hash`). Caller functions reference the definition's content hash, meaning renames never break dependencies.
+- **SQLite Storage Backend**: Store definitions in `.anylang/codebase.sqlite` containing:
+  - `terms`: `(hash PRIMARY KEY, ast_json TEXT, created_at INTEGER)`
+  - `names`: `(namespace TEXT, name TEXT, hash TEXT, PRIMARY KEY(namespace, name))`
+  - `cached_js`: `(hash PRIMARY KEY, transpiled_code TEXT)` for instant zero-overhead execution.
+
+### 6. Bidirectional Multi-Dialect Roundtripping
+
+Because AnyLang code is stored as a canonical AST, developers on the same team can write and view the same codebase in their preferred syntax:
+
+- Alice prefers Pythonic syntax (`def`, `and`, `or`, `True`).
+- Bob prefers Rust syntax (`fn`, `&&`, `||`, `true`).
+- The repository stores the canonical AST (or SQLite hashes). On checkout or save, the editor projects the AST into the developer's chosen dialect seamlessly.
 
 ---
 
@@ -74,6 +91,7 @@ No matter what standard output function you remember from your favorite language
 - [x] **Nearley Grammar & AST Generator**: Full AST generation for variable declarations, functions, conditionals, loops, binary expressions, and returns.
 - [x] **JavaScript Transpiler / Execution Engine**: Transpile AnyLang AST into clean JavaScript and execute instantly in Node.js.
 - [x] **Unison-style Dialect Formatter**: Convert any AnyLang AST into Java, C#, Pythonic, Rust, or JavaScript syntax.
+- [ ] **Content-Addressed Codebase (SQLite Store)**: Hash normalized function ASTs and persist terms + names in a local SQLite database.
+- [ ] **Data Structures**: Support array/list literals `[1, 2, 3]` and object/dict literals `{ "key": value }`.
 - [ ] **Optional Type Annotations**: Allow Java/TypeScript-style type annotations (e.g. `int x: number = 5;` or `fn add(int a, float b): int`) which are parsed and dynamically checked or erased.
-- [ ] **Package Manager**: AnyPkg (install packages from npm, pip, or crates.io seamlessly).
-- [ ] **Content-Addressed Code Hash**: True Unison-style hashing of function ASTs to allow dependency-free sharing.
+- [ ] **Package Manager & Ecosystem**: AnyPkg for sharing content-addressed AST modules without dependency hell.

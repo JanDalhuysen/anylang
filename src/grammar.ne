@@ -7,6 +7,89 @@ const { lexer } = require("./scanner.js");
 function unquote(str) {
   return str.slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'");
 }
+
+function parseTemplateLiteral(raw) {
+  const content = raw.slice(1, -1);
+  const parts = [];
+  let i = 0;
+  let textBuf = "";
+
+  while (i < content.length) {
+    if (content[i] === "\\" && i + 1 < content.length) {
+      const next = content[i + 1];
+      if (next === "`" || next === "$") {
+        textBuf += next;
+        i += 2;
+        continue;
+      } else if (next === "n") {
+        textBuf += "\n";
+        i += 2;
+        continue;
+      } else if (next === "t") {
+        textBuf += "\t";
+        i += 2;
+        continue;
+      } else if (next === "\\") {
+        textBuf += "\\";
+        i += 2;
+        continue;
+      } else {
+        textBuf += "\\" + next;
+        i += 2;
+        continue;
+      }
+    }
+
+    if (content[i] === "$" && content[i + 1] === "{") {
+      if (textBuf.length > 0) {
+        parts.push({
+          type: "Literal",
+          value: textBuf,
+          raw: JSON.stringify(textBuf),
+        });
+        textBuf = "";
+      }
+
+      i += 2; // skip ${
+      let depth = 1;
+      let exprCode = "";
+      while (i < content.length && depth > 0) {
+        if (content[i] === "{") {
+          depth++;
+          exprCode += "{";
+        } else if (content[i] === "}") {
+          depth--;
+          if (depth > 0) exprCode += "}";
+        } else {
+          exprCode += content[i];
+        }
+        i++;
+      }
+
+      parts.push({
+        type: "TemplateExpression",
+        expression: exprCode.trim(),
+      });
+    } else {
+      textBuf += content[i];
+      i++;
+    }
+  }
+
+  if (textBuf.length > 0) {
+    parts.push({
+      type: "Literal",
+      value: textBuf,
+      raw: JSON.stringify(textBuf),
+    });
+  }
+
+  return {
+    type: "TemplateLiteral",
+    raw,
+    parts,
+  };
+}
 %}
 
 @lexer lexer
@@ -269,6 +352,9 @@ PrimaryExpression
           value: unquote(d[0].value),
           raw: d[0].value
         })
+       %}
+     | %template_string {%
+        (d) => parseTemplateLiteral(d[0].value)
        %}
      | %kw_bool {%
         (d) => {
