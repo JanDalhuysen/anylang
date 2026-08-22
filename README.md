@@ -86,6 +86,28 @@ node src/cli.js show fact --to pythonic
 
 ---
 
+## Collaborative Web UI (Multi-Dialect Pair Programming)
+
+A real-time collaborative editor (Express + Socket.IO + Monaco) where everyone
+sees and edits the **same program in their own preferred language**:
+
+```bash
+npm run web
+# open http://localhost:3000 in two or more browser windows
+```
+
+- Each person picks a view: **JavaScript, Rust, C#, or Java**.
+- When one person types (e.g. `console.log("hi")` in the JavaScript view), it
+  appears **instantly** on everyone else's screen in _their_ dialect
+  (e.g. `println!("hi")` for the Rust viewer).
+- How it works: the server keeps one canonical AnyLang document. Each edit is
+  parsed back into the shared AST and re-projected into every viewer's dialect.
+- Use the **▶ Run** button to execute the program; output is broadcast to all.
+- Note: opening braces must stay on their own line (AnyLang's Allman rule), and
+  the Pythonic dialect is view-only via the CLI since it has no braces.
+
+---
+
 ## Vim / Neovim Syntax Highlighting
 
 AnyLang includes syntax files for Vim and Neovim (`ftdetect/` and `syntax/`).

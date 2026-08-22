@@ -11,30 +11,47 @@ function getCalleePath(node) {
   return "";
 }
 
-const PRINT_FUNCTIONS = new Set(["print", "println", "echo", "puts", "printf", "console.log", "fmt.Println", "fmt.Print", "fmt.Printf", "System.out.println", "System.out.print"]);
+const PRINT_FUNCTIONS = new Set(["print", "println", "echo", "puts", "printf", "console.log", "fmt.Println", "fmt.Print", "fmt.Printf", "System.out.println", "System.out.print", "Console.WriteLine", "Console.Write"]);
+
+// Splits a leading Rust-style format string (e.g. the "{}" in println!("{}", x))
+// away from the real arguments so other dialects don't see it.
+function splitFormatArgs(args) {
+  if (args.length >= 1 && args[0].type === "Literal" && typeof args[0].value === "string") {
+    const placeholders = (args[0].value.match(/\{\}/g) || []).length;
+    if (placeholders > 0 && placeholders === args.length - 1) {
+      return { formatString: args[0], values: args.slice(1) };
+    }
+  }
+  return { formatString: null, values: args };
+}
 
 function formatPrintCall(calleePath, args, dialect) {
-  const isNoNewline = calleePath === "print" || calleePath === "fmt.Print" || calleePath === "System.out.print";
+  const isNoNewline = calleePath === "print" || calleePath === "fmt.Print" || calleePath === "System.out.print" || calleePath === "Console.Write";
+  const { formatString, values } = splitFormatArgs(args);
 
   if (dialect === "rust") {
     const macroName = isNoNewline ? "print!" : "println!";
-    if (args.length === 0) {
+    if (formatString) {
+      const parts = [JSON.stringify(formatString.value), ...values.map((v) => formatDialect(v, dialect, 0))];
+      return `${macroName}(${parts.join(", ")})`;
+    }
+    if (values.length === 0) {
       return `${macroName}()`;
     }
-    if (args.length === 1) {
-      const arg = args[0];
+    if (values.length === 1) {
+      const arg = values[0];
       if (arg.type === "Literal" && typeof arg.value === "string" && !arg.value.includes("{") && !arg.value.includes("}")) {
         return `${macroName}(${JSON.stringify(arg.value)})`;
       }
       return `${macroName}("{}", ${formatDialect(arg, dialect, 0)})`;
     }
-    const placeholders = args.map(() => "{}").join(" ");
-    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    const placeholders = values.map(() => "{}").join(" ");
+    const formattedArgs = values.map((a) => formatDialect(a, dialect, 0)).join(", ");
     return `${macroName}("${placeholders}", ${formattedArgs})`;
   }
 
   if (dialect === "pythonic") {
-    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    const formattedArgs = values.map((a) => formatDialect(a, dialect, 0)).join(", ");
     if (isNoNewline) {
       return `print(${formattedArgs}, end="")`;
     }
@@ -43,22 +60,22 @@ function formatPrintCall(calleePath, args, dialect) {
 
   if (dialect === "csharp") {
     const method = isNoNewline ? "Console.Write" : "Console.WriteLine";
-    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    const formattedArgs = values.map((a) => formatDialect(a, dialect, 0)).join(", ");
     return `${method}(${formattedArgs})`;
   }
 
   if (dialect === "java") {
     const method = isNoNewline ? "System.out.print" : "System.out.println";
-    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    const formattedArgs = values.map((a) => formatDialect(a, dialect, 0)).join(", ");
     return `${method}(${formattedArgs})`;
   }
 
   if (dialect === "javascript") {
-    const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+    const formattedArgs = values.map((a) => formatDialect(a, dialect, 0)).join(", ");
     return `console.log(${formattedArgs})`;
   }
 
-  const formattedArgs = args.map((a) => formatDialect(a, dialect, 0)).join(", ");
+  const formattedArgs = values.map((a) => formatDialect(a, dialect, 0)).join(", ");
   return `println(${formattedArgs})`;
 }
 

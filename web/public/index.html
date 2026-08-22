@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AnyLang — Collaborative Multi-Dialect Editor</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #1e1e1e;
+        color: #d4d4d4;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 14px;
+        background: #252526;
+        border-bottom: 1px solid #333;
+        flex-wrap: wrap;
+      }
+      header .logo {
+        font-weight: 700;
+        color: #4ec9b0;
+        font-size: 16px;
+      }
+      header label {
+        font-size: 12px;
+        color: #999;
+      }
+      select,
+      input,
+      button {
+        background: #3c3c3c;
+        color: #d4d4d4;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+      }
+      button {
+        cursor: pointer;
+        background: #0e639c;
+        border-color: #0e639c;
+        color: #fff;
+      }
+      button:hover {
+        background: #1177bb;
+      }
+      #users {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-left: auto;
+      }
+      .user-chip {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        background: #333;
+        padding: 3px 8px;
+        border-radius: 10px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      #editor {
+        flex: 1;
+        min-height: 0;
+      }
+      #statusbar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        padding: 4px 14px;
+        font-size: 12px;
+        background: #007acc;
+        color: #fff;
+      }
+      #status.synced {
+        color: #b5f0c5;
+      }
+      #status.error {
+        color: #ffb3b3;
+      }
+      #output-panel {
+        height: 300px;
+        border-top: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+        background: #181818;
+      }
+      #output-panel .panel-head {
+        padding: 3px 14px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #888;
+        background: #222;
+      }
+      #output {
+        flex: 1;
+        margin: 0;
+        padding: 8px 14px;
+        overflow: auto;
+        font-family: Consolas, monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="logo">AnyLang</span>
+      <label for="name">Name</label>
+      <input id="name" size="10" />
+      <label for="dialect">My view</label>
+      <select id="dialect">
+        <option value="javascript">JavaScript</option>
+        <option value="rust">Rust</option>
+        <option value="csharp">C#</option>
+        <option value="java">Java</option>
+      </select>
+      <button id="run">▶ Run</button>
+      <div id="users"></div>
+    </header>
+    <main>
+      <div id="editor"></div>
+      <div id="statusbar">
+        <span id="status" class="synced">Connected</span>
+        <span id="dialect-hint"></span>
+      </div>
+      <div id="output-panel">
+        <div class="panel-head">Output</div>
+        <pre id="output"></pre>
+      </div>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+    <script src="/client.js"></script>
+  </body>
+</html>

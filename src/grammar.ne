@@ -339,6 +339,12 @@ PrimaryExpression
           name: d[0].value
         })
        %}
+     | %macro_ident {%
+        (d) => ({
+          type: "Identifier",
+          name: d[0].value.slice(0, -1)
+        })
+       %}
      | %number {%
         (d) => ({
           type: "Literal",

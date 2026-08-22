@@ -9,7 +9,8 @@
   "scripts": {
     "build": "nearleyc src/grammar.ne -o src/grammar.js",
     "test": "npm run build && node src/test.js",
-    "start": "node src/test.js"
+    "start": "node src/test.js",
+    "web": "node web/server.js"
   },
   "repository": {
     "type": "git",
@@ -24,10 +25,13 @@
   },
   "homepage": "https://github.com/JanDalhuysen/anylang#readme",
   "dependencies": {
+    "express": "^5.2.1",
     "moo": "^0.5.3",
-    "nearley": "^2.20.1"
+    "nearley": "^2.20.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "socket.io-client": "^4.8.3"
   }
 }

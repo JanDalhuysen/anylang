@@ -24,3 +24,19 @@ def calculate(a, b)
 greet("Ada Lovelace");
 val result1 = calculate(10, 4);
 print("Result 1: " + result1);
+
+if (yes)
+{
+    print("This is true!");
+}
+
+let hallo = "Hallo from AnyLang!";
+
+let do_it = true;
+
+if (do_it)
+{
+    print(hallo);
+}
+
+

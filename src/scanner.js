@@ -10,6 +10,10 @@ const baseLexer = moo.compile({
   },
   string: /"(?:\\["\\]|[^\n"\\])*"|'(?:\\['\\]|[^\n'\\])*'/,
 
+  // Rust-style macro invocations (e.g. println!(...)) - lookahead on '(' so that
+  // expressions like `a!=b` are not mis-lexed.
+  macro_ident: /[a-zA-Z_][a-zA-Z0-9_]*!(?=\()/,
+
   // Use moo.keywords attached to identifiers to prevent prefix clashes
   identifier: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
@@ -28,8 +32,10 @@ const baseLexer = moo.compile({
   },
 
   // Symbolic operators and punctuation
+  // NOTE: moo matches rules in definition order, so multi-char comparison
+  // operators must come before the single-char '!' in op_logical.
+  op_compare: ["===", "!==", "==", "!=", "<=", ">=", "<", ">"],
   op_logical: ["&&", "||", "!"],
-  op_compare: ["===", "==", "!==", "!=", "<=", ">=", "<", ">"],
   assign_op: ["+=", "-=", "*=", "/=", "="],
   plus: "+",
   minus: "-",

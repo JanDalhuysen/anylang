@@ -402,6 +402,14 @@
       },
       {
         name: "PrimaryExpression",
+        symbols: [lexer.has("macro_ident") ? { type: "macro_ident" } : macro_ident],
+        postprocess: (d) => ({
+          type: "Identifier",
+          name: d[0].value.slice(0, -1),
+        }),
+      },
+      {
+        name: "PrimaryExpression",
         symbols: [lexer.has("number") ? { type: "number" } : number],
         postprocess: (d) => ({
           type: "Literal",
