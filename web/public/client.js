@@ -106,6 +106,7 @@ socket.on("users", renderUsers);
 
 socket.on("output", ({ text, by }) => {
   outputEl.textContent = text || "(no output)";
+  switchTab("output");
   setStatus(`▶ Run by ${by}`, "synced");
 });
 
@@ -124,3 +125,71 @@ dialectSel.addEventListener("change", () => {
 
 nameInput.addEventListener("change", join);
 document.getElementById("run").addEventListener("click", () => socket.emit("run"));
+
+// --- Panel tabs ------------------------------------------------------------------
+const tabOutput = document.getElementById("tab-output");
+const tabTerminal = document.getElementById("tab-terminal");
+const viewOutput = document.getElementById("view-output");
+const viewTerminal = document.getElementById("view-terminal");
+const terminalOut = document.getElementById("terminal-out");
+const terminalInput = document.getElementById("terminal-input");
+
+function switchTab(which) {
+  const outActive = which === "output";
+  tabOutput.classList.toggle("active", outActive);
+  tabTerminal.classList.toggle("active", !outActive);
+  viewOutput.classList.toggle("active", outActive);
+  viewTerminal.classList.toggle("active", !outActive);
+  if (!outActive) terminalInput.focus();
+}
+tabOutput.addEventListener("click", () => switchTab("output"));
+tabTerminal.addEventListener("click", () => switchTab("terminal"));
+
+// --- Unison Terminal ----------------------------------------------------------------
+const termHistory = [];
+let termHistoryIdx = -1;
+
+function appendTerminal(html) {
+  const atBottom = terminalOut.scrollHeight - terminalOut.scrollTop - terminalOut.clientHeight < 40;
+  terminalOut.innerHTML += html;
+  if (atBottom) terminalOut.scrollTop = terminalOut.scrollHeight;
+}
+
+function runTerminalCommand(command) {
+  if (!command.trim()) return;
+  termHistory.push(command);
+  termHistoryIdx = termHistory.length;
+  socket.emit("terminal", { command });
+  switchTab("terminal"); // make sure the terminal view is visible on output
+}
+
+socket.on("terminal-output", ({ command, text, by }) => {
+  appendTerminal(`<span class="term-by">${escapeHtml(by)}</span> ` + `<span class="term-cmd">anylang&gt; ${escapeHtml(command)}</span>\n` + `${escapeHtml(text || "")}\n\n`);
+  terminalOut.scrollTop = terminalOut.scrollHeight;
+});
+
+terminalInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const cmd = terminalInput.value;
+    terminalInput.value = "";
+    runTerminalCommand(cmd);
+  } else if (e.key === "ArrowUp") {
+    if (termHistoryIdx > 0) {
+      termHistoryIdx--;
+      terminalInput.value = termHistory[termHistoryIdx];
+    }
+    e.preventDefault();
+  } else if (e.key === "ArrowDown") {
+    if (termHistoryIdx < termHistory.length - 1) {
+      termHistoryIdx++;
+      terminalInput.value = termHistory[termHistoryIdx];
+    } else {
+      termHistoryIdx = termHistory.length;
+      terminalInput.value = "";
+    }
+    e.preventDefault();
+  }
+});
+
+// Greeting line in the terminal
+appendTerminal(`<span class="term-cmd">AnyLang Unison Terminal</span>\n` + `Content-addressed codebase — share functions by hash, project them into\n` + `any dialect, and semantically diff them. Type 'help' for commands.\n\n`);

@@ -140,4 +140,48 @@ if (rustTemplate.includes('format!("Hello {user}, welcome as {role}!")') && rust
   console.log("  Success: Template literal & print normalized correctly for Rust!");
 }
 
+// 8. Test Semantic AST Diff (Git-for-ASTs / Idea 1)
+console.log("\n8. Testing Semantic AST Diff (dialect noise ignored, real changes detected):");
+const { diffPrograms } = require("./index.js");
+
+// Same logic, completely different dialects -> must be identical
+const pyStyle = parse(`
+def twice(x)
+{
+  give x * 2;
+}
+`).body[0];
+
+const rustStyle = parse(`
+fn twice(x)
+{
+  return x * 2;
+}
+`).body[0];
+
+const sameDiff = diffPrograms(pyStyle, rustStyle, "a", "b");
+if (sameDiff.identical) {
+  console.log("  Success: 'def/give' vs 'fn/return' versions are semantically identical!");
+} else {
+  console.error("  Failure: dialect noise was reported as a difference:", sameDiff.differences);
+}
+
+// Real semantic change -> must be detected
+const tripled = parse(`
+fn twice(x)
+{
+  return x * 3;
+}
+`).body[0];
+
+const realDiff = diffPrograms(pyStyle, tripled, "a", "b");
+if (!realDiff.identical && realDiff.differences.length > 0) {
+  console.log(`  Success: semantic change detected (${realDiff.differences.length} difference(s)):`);
+  for (const d of realDiff.differences) {
+    console.log(`    ~ ${d.path}: a=${d.a} b=${d.b}`);
+  }
+} else {
+  console.error("  Failure: real semantic change was NOT detected!");
+}
+
 console.log("\nAll AnyLang tests passed!");

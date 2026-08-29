@@ -1,5 +1,44 @@
 # AnyLang TODO Roadmap
 
+## Phase 5: Epic Ideas (New)
+
+- [ ] **Idea 1: Hash-Merge Conflict-Free Collaboration ("Git for ASTs")** — _see IDEAS.md_
+  - [x] **Semantic Diff Module (`src/differ.js`)**
+    - [x] `diffAST(nodeA, nodeB)` recursive diff over _normalized_ ASTs (dialect keywords already unified by the hasher, so `def` vs `fn` / `return` vs `give` never show as differences).
+    - [x] Returns `{ identical, differences: [{ path, a, b }] }` with human-readable path notation (e.g. `body[0].body[1].argument.operator`).
+  - [x] **CLI `diff` Command (`src/cli.js`)**
+    - [x] `anylang diff <a> <b> [--to <dialect>] [--namespace <ns>]` where each target is a term name, `#hash` (or hash prefix), or a `.al` file path.
+    - [x] Prints "✨ Semantically identical" when normalized hashes match (dialect noise ignored), otherwise lists each semantic difference with path + values.
+    - [x] `--to <dialect>` renders both versions projected side-by-side in the target dialect for human review.
+  - [ ] `anylang merge <a> <b>`: keep both differing versions as separate content-addressed terms and interactively choose the winning alias.
+  - [x] **Web UI: In-Editor Unison Terminal (`web/`)**
+    - [x] Bottom panel tabs: **Output** / **Unison Terminal** with `anylang>` prompt, command history (↑/↓), and colored multi-user output.
+    - [x] Server-side **whitelist-only** executor (`help`, `ls`, `add`, `show`, `diff`, `rename`, `run-term`) backed by the shared `CodebaseStore` — any other command (e.g. shell commands) is rejected.
+    - [x] Commands + results broadcast over Socket.IO so all collaborators see codebase activity live.
+    - [x] End-to-end test with two simulated clients (`test/web-terminal.test.js`): 9/9 commands pass, including disallowed-command rejection.
+
+- [ ] **Idea 2: Dialect-Aware Error Messages ("The Rosetta Compiler")** — _see IDEAS.md_
+  - [ ] Detect common foreign-construct mistakes (`def foo(x):`, `x++`, same-line `{` from K&R style) and suggest closest valid AnyLang syntax.
+  - [ ] Infer "home dialect" from keyword usage and localize compiler output/docs.
+  - [ ] `anylang doctor <file.al>` dialect purity score.
+
+- [ ] **Idea 3: Cross-Language Import Bridge ("Eat the Ecosystem")** — _see IDEAS.md_
+  - [ ] `anylang import <file.js>`: parse a JavaScript subset back into the canonical AnyLang AST (reverse transpiler) and store as content-addressed terms.
+  - [ ] Full roundtrip validation: `JS → AST → dialect projection → AST` hash stability.
+  - [ ] Optional: Python subset importer via lightweight mapping rules.
+
+This document outlines targeted, actionable short-term goals and milestones for AnyLang development.
+
+---
+
+## Phase 1: Unison-Inspired Content-Addressed Codebase (Completed)
+
+---
+
+## Phase 1: Unison-Inspired Content-Addressed Codebase (Completed)
+
+# AnyLang TODO Roadmap
+
 This document outlines targeted, actionable short-term goals and milestones for AnyLang development.
 
 ---

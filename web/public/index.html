@@ -111,14 +111,30 @@
         background: #181818;
       }
       #output-panel .panel-head {
-        padding: 3px 14px;
+        display: flex;
+        gap: 2px;
+        padding: 0 8px;
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 1px;
         color: #888;
         background: #222;
       }
-      #output {
+      #output-panel .panel-head .tab {
+        padding: 5px 14px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        user-select: none;
+      }
+      #output-panel .panel-head .tab:hover {
+        color: #ccc;
+      }
+      #output-panel .panel-head .tab.active {
+        color: #4ec9b0;
+        border-bottom-color: #4ec9b0;
+      }
+      #output,
+      #terminal-out {
         flex: 1;
         margin: 0;
         padding: 8px 14px;
@@ -126,6 +142,43 @@
         font-family: Consolas, monospace;
         font-size: 13px;
         white-space: pre-wrap;
+      }
+      .panel-view {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .panel-view.active {
+        display: flex;
+      }
+      #terminal-input-row {
+        display: flex;
+        border-top: 1px solid #333;
+        background: #1b1b1b;
+      }
+      #terminal-prompt {
+        padding: 6px 0 6px 14px;
+        font-family: Consolas, monospace;
+        font-size: 13px;
+        color: #4ec9b0;
+        white-space: nowrap;
+      }
+      #terminal-input {
+        flex: 1;
+        background: transparent;
+        color: #d4d4d4;
+        border: none;
+        outline: none;
+        padding: 6px 8px;
+        font-family: Consolas, monospace;
+        font-size: 13px;
+      }
+      #terminal-out .term-by {
+        color: #569cd6;
+      }
+      #terminal-out .term-cmd {
+        color: #dcdcaa;
       }
     </style>
   </head>
@@ -151,8 +204,20 @@
         <span id="dialect-hint"></span>
       </div>
       <div id="output-panel">
-        <div class="panel-head">Output</div>
-        <pre id="output"></pre>
+        <div class="panel-head">
+          <div class="tab active" id="tab-output">Output</div>
+          <div class="tab" id="tab-terminal">Unison Terminal</div>
+        </div>
+        <div class="panel-view active" id="view-output">
+          <pre id="output"></pre>
+        </div>
+        <div class="panel-view" id="view-terminal">
+          <pre id="terminal-out"></pre>
+          <div id="terminal-input-row">
+            <span id="terminal-prompt">anylang&gt;</span>
+            <input id="terminal-input" autocomplete="off" spellcheck="false" placeholder="type 'help' for AnyLang CLI commands…" />
+          </div>
+        </div>
       </div>
     </main>
 

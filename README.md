@@ -106,6 +106,30 @@ npm run web
 - Note: opening braces must stay on their own line (AnyLang's Allman rule), and
   the Pythonic dialect is view-only via the CLI since it has no braces.
 
+### Unison Terminal (In-Editor Codebase CLI)
+
+The bottom panel has two tabs: **Output** and **Unison Terminal**. The terminal
+brings the Unison codebase features directly into the collaborative session —
+and it **only accepts AnyLang CLI commands** (whitelisted on the server), so
+it is safe to expose:
+
+```text
+anylang> add                 # save the shared document's terms into SQLite
+anylang> ls                  # list all terms with their content hashes
+anylang> show factorial --to rust
+anylang> diff factorial fibonacci --to csharp
+anylang> rename factorial fact
+anylang> run-term factorial
+```
+
+- Commands and results are **broadcast to everyone** in the session — you and
+  your friend see each other's codebase activity live.
+- `diff` uses the semantic AST diff: dialect noise (`def` vs `fn`,
+  `give` vs `return`) never shows as a difference; only real semantic
+  changes do.
+- The terminal is backed by the same content-addressed SQLite store as
+  `node src/cli.js`.
+
 ---
 
 ## Vim / Neovim Syntax Highlighting

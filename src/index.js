@@ -6,6 +6,7 @@ const { transpile } = require("./transpiler.js");
 const { formatDialect } = require("./formatter.js");
 
 const hasher = require("./hasher.js");
+const { diffAST, diffPrograms } = require("./differ.js");
 const { CodebaseStore } = require("./store.js");
 
 function parse(code) {
@@ -37,5 +38,7 @@ module.exports = {
   formatDialect,
   runtime,
   ...hasher,
+  diffAST,
+  diffPrograms,
   CodebaseStore,
 };

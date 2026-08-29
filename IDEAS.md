@@ -1,5 +1,57 @@
 # AnyLang - The Universal Pidgin Programming Language
 
+> **Epic Ideas** (community proposals):
+
+## Epic Idea 1: Hash-Merge Conflict-Free Collaboration ("Git for ASTs")
+
+Because identical semantics produce identical content hashes, merging becomes
+trivial and text-conflict-free:
+
+- **Auto-merge both versions**: a "conflict" only exists when hashes differ, so
+  `anylang merge` can keep _both_ sides as separate content-addressed terms and
+  simply ask which alias should point where.
+- **Semantic diff**: `anylang diff <a> <b>` compares _normalized_ ASTs, so
+  pure dialect noise (`def` vs `fn`, `return` vs `give`) shows as
+  **identical** (same hash!) and only real semantic changes are reported.
+  Any two targets work: term names, `#hashes`, or `.al` files.
+- **Side-by-side projections**: when versions differ, render both in the
+  viewer's dialect with `--to <dialect>` for human judgment.
+
+This turns Git's line-based merge problem into a "which version do we alias?"
+decision - something almost no other language can do.
+
+## Epic Idea 2: Dialect-Aware Error Messages ("The Rosetta Compiler")
+
+AnyLang accepts keywords from 8+ languages, so errors should speak the
+user's language too:
+
+- **Smart suggestions**: detect familiar foreign constructs (e.g. `def foo(x):`
+  Python habit, `x++` C/Java habit) and suggest the closest valid AnyLang
+  construct instead of a bare "Syntax Error".
+- **Home-dialect detection**: infer the user's "home dialect" from keyword
+  usage (lots of `fn`/`println!` → Rustacean) and render compiler output,
+  docs, and examples in that dialect.
+- **Dialect purity score**: `anylang doctor my_file.al` reports a fun stat
+  like _"You're 80% Go, 15% Python, 5% Rust 🦀"_.
+
+## Epic Idea 3: Cross-Language Import Bridge ("Eat the Ecosystem")
+
+Let AnyLang consume real code from other languages:
+
+- `anylang import fibonacci.py` (or `.js`) parses foreign source, maps its
+  constructs into the canonical AST, and stores it as a content-addressed
+  term - instantly projectable into any dialect.
+- Start with JavaScript (AnyLang already transpiles to JS, so a reverse-parser
+  enables full roundtrip: `JS → AST → Rust view`).
+- No ecosystem bootstrapping problem; validates the motto _"If it compiles in
+  anything, it compiles in AnyLang"_ literally.
+
+---
+
+# AnyLang - The Universal Pidgin Programming Language
+
+# AnyLang - The Universal Pidgin Programming Language
+
 > **"If it compiles in anything, it should compile in AnyLang."**
 
 AnyLang is a multi-syntax, multi-paradigm programming language designed as a functional joke with serious underlying language design principles. It combines keywords and idioms from JavaScript, Python, Java, C#, C++, Go, Rust, Ruby, PHP, and more into a universal dialect where almost whatever you type is valid syntax.

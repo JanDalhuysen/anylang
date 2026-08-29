@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { parse, transpile, run, runAST, formatDialect, CodebaseStore } = require("./index.js");
+const { parse, transpile, run, runAST, formatDialect, CodebaseStore, diffPrograms, hashAST } = require("./index.js");
 
 const args = process.argv.slice(2);
 
@@ -24,10 +24,14 @@ Unison Codebase Commands (SQLite):
   ls [--namespace <ns>]          List all terms and hashes in the codebase
   show <name|#hash> [--to <lang>] [--namespace <ns>]
                                  Display a stored term projected into a target dialect
-  run-term <name|#hash> [--namespace <ns>]
-                                 Execute a stored function directly from the codebase
+  run-term <name|#hash> [args...] [--namespace <ns>]
+                                 Execute a stored function directly from the codebase (with optional args)
   rename <old_name> <new_name> [--namespace <ns>]
                                  Update a term alias without breaking caller functions
+  diff <a> <b> [--to <lang>] [--namespace <ns>]
+                                 Semantic AST diff between two targets (term names,
+                                 #hashes, or .al files). Dialect noise (def vs fn,
+                                 return vs give) is ignored by design.
 
 Options:
   --to <lang>                    Target dialect (csharp, pythonic, rust, javascript)
@@ -62,7 +66,7 @@ for (let i = 0; i < args.length; i++) {
   } else if ((args[i] === "--namespace" || args[i] === "-ns") && args[i + 1]) {
     namespace = args[i + 1];
     i++;
-  } else if (!command && ["run", "transpile", "format", "add", "ls", "show", "run-term", "rename"].includes(args[i])) {
+  } else if (!command && ["run", "transpile", "format", "add", "ls", "show", "run-term", "rename", "diff"].includes(args[i])) {
     command = args[i];
   } else if (!args[i].startsWith("-")) {
     positionalArgs.push(args[i]);
@@ -185,6 +189,13 @@ try {
 
     case "run-term": {
       const target = positionalArgs[0];
+      const fnArgs = positionalArgs.slice(1).map((val) => {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      });
       if (!target) {
         console.error("Error: Please specify a term name or #hash to run.");
         process.exit(1);
@@ -203,7 +214,74 @@ try {
       }
 
       console.log(`Executing term: ${term.name} (${term.shortHash})...\n`);
-      runAST(term.ast);
+      const vm = require("vm");
+      const { transpile, runtime } = require("./index.js");
+      const jsCode = transpile(term.ast);
+      const sandbox = { ...runtime };
+      vm.createContext(sandbox);
+      vm.runInContext(jsCode, sandbox);
+
+      if (fnArgs.length > 0 && typeof sandbox[term.name] === "function") {
+        const result = sandbox[term.name](...fnArgs);
+        if (result !== undefined) {
+          console.log(`=> ${typeof result === "object" ? JSON.stringify(result) : result}`);
+        }
+      }
+      break;
+    }
+
+    case "diff": {
+      const targetA = positionalArgs[0];
+      const targetB = positionalArgs[1];
+      if (!targetA || !targetB) {
+        console.error("Error: Please specify two targets to diff (term name, #hash, or .al file).");
+        process.exit(1);
+      }
+
+      const resolveTarget = (target) => {
+        if (target.endsWith(".al")) {
+          const resolvedPath = path.resolve(process.cwd(), target);
+          const sourceCode = fs.readFileSync(resolvedPath, "utf-8");
+          return { label: target, node: parse(sourceCode) };
+        }
+        const isHash = target.startsWith("#") || (target.length >= 8 && /^[0-9a-f]+$/i.test(target));
+        const term = isHash ? store.getTermByHash(target) : store.getTermByName(target, namespace);
+        if (!term) {
+          throw new Error(`Term '${target}' not found in codebase.`);
+        }
+        return { label: `${term.name} (${term.shortHash})`, node: term.ast };
+      };
+
+      const a = resolveTarget(targetA);
+      const b = resolveTarget(targetB);
+
+      console.log(`\nSemantic Diff:`);
+      console.log(`  a = ${a.label}`);
+      console.log(`  b = ${b.label}\n`);
+
+      const identicalByHash = hashAST(a.node) === hashAST(b.node);
+      const { identical, differences } = diffPrograms(a.node, b.node, targetA, targetB);
+
+      if (identical || identicalByHash) {
+        console.log(`✨ Semantically identical! (dialect differences like 'def' vs 'fn' are ignored by design)`);
+      } else {
+        console.log(`Found ${differences.length} semantic difference(s):\n`);
+        for (const d of differences) {
+          console.log(`  ~ ${d.path}`);
+          console.log(`      a: ${d.a}`);
+          console.log(`      b: ${d.b}`);
+        }
+      }
+
+      if (dialect && !identical && !identicalByHash) {
+        console.log(`\n--- Side-by-side projection (--to ${dialect}) ---\n`);
+        console.log(`// a: ${targetA}`);
+        console.log(formatDialect(a.node, dialect));
+        console.log(`\n// b: ${targetB}`);
+        console.log(formatDialect(b.node, dialect));
+      }
+
+      console.log();
       break;
     }
 
