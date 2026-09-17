@@ -17,9 +17,8 @@ const { parse, run, runAST, transpile, runtime, formatDialect, CodebaseStore } =
 
 const PORT = process.env.PORT || 3000;
 
-// Dialects that can be parsed back into the canonical AST (round-trip safe).
-// "pythonic" is excluded because AnyLang strictly requires Allman braces.
-const DIALECTS = ["javascript", "rust", "csharp", "java"];
+// Dialects that can be viewed and edited in the collaborative web editor.
+const DIALECTS = ["javascript", "rust", "csharp", "java", "python", "pythonic"];
 
 const app = express();
 const server = http.createServer(app);
@@ -32,7 +31,8 @@ let canonical = fs.readFileSync(path.join(__dirname, "..", "examples", "03_facto
 let canonicalAST = parse(canonical);
 
 function project(dialect) {
-  return formatDialect(canonicalAST, dialect);
+  const target = dialect === "python" ? "pythonic" : dialect;
+  return formatDialect(canonicalAST, target);
 }
 
 // --- Presence -----------------------------------------------------------------
@@ -70,11 +70,35 @@ function makeCaptureCtx() {
 function runCanonical() {
   const { lines, ctx } = makeCaptureCtx();
   try {
-    run(canonical, ctx);
+    runAST(canonicalAST, ctx);
   } catch (err) {
     lines.push("Runtime Error: " + (err.message || err));
   }
   return lines.join("\n");
+}
+
+function parseCode(code, dialect) {
+  try {
+    return parse(code);
+  } catch (err) {
+    if (dialect === "python" || dialect === "pythonic") {
+      const normalized = code
+        .split("\n")
+        .map((l) => {
+          const t = l.trim();
+          if (!t || t.endsWith("{") || t.endsWith("}") || t.endsWith(";") || t.startsWith("//") || t.startsWith("/*")) {
+            return l;
+          }
+          if (t.startsWith("def ") || t.startsWith("if ") || t.startsWith("if(") || t === "else" || t.startsWith("while ") || t.startsWith("while(") || t.startsWith("for ") || t.startsWith("for(")) {
+            return l;
+          }
+          return l + ";";
+        })
+        .join("\n");
+      return parse(normalized);
+    }
+    throw err;
+  }
 }
 
 // --- Unison Codebase Terminal ---------------------------------------------------
@@ -130,7 +154,7 @@ function execTerminal(line) {
           "  ls                      List all terms with their content hashes",
           "  show <name|#hash> [--to dialect]",
           "                            Project a stored term into a dialect",
-          "                            (javascript, rust, csharp, java, pythonic)",
+          "                            (javascript, rust, csharp, java, python, pythonic)",
           "  diff <a> <b> [--to dialect]",
           "                            Semantic AST diff between two terms — dialect",
           "                            noise (def vs fn, give vs return) is ignored",
@@ -240,7 +264,7 @@ io.on("connection", (socket) => {
     const user = users.get(socket.id);
     if (!user || typeof code !== "string") return;
     try {
-      const ast = parse(code);
+      const ast = parseCode(code, user.dialect);
       canonical = code;
       canonicalAST = ast;
       if (ack) ack({ ok: true });

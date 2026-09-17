@@ -1,7 +1,7 @@
 /* AnyLang Collaborative Editor — client */
 /* global monaco, io, require */
 
-const MONACO_LANG = { javascript: "javascript", rust: "rust", csharp: "csharp", java: "java" };
+const MONACO_LANG = { javascript: "javascript", rust: "rust", csharp: "csharp", java: "java", python: "python", pythonic: "python" };
 
 const socket = io();
 const statusEl = document.getElementById("status");

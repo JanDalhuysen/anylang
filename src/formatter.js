@@ -26,6 +26,7 @@ function splitFormatArgs(args) {
 }
 
 function formatPrintCall(calleePath, args, dialect) {
+  if (dialect === "python") dialect = "pythonic";
   const isNoNewline = calleePath === "print" || calleePath === "fmt.Print" || calleePath === "System.out.print" || calleePath === "Console.Write";
   const { formatString, values } = splitFormatArgs(args);
 
@@ -80,6 +81,7 @@ function formatPrintCall(calleePath, args, dialect) {
 }
 
 function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
+  if (dialect === "python") dialect = "pythonic";
   if (!ast) return "";
   const indent = "  ".repeat(indentLevel);
 
