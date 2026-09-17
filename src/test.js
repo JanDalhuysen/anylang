@@ -184,4 +184,35 @@ if (!realDiff.identical && realDiff.differences.length > 0) {
   console.error("  Failure: real semantic change was NOT detected!");
 }
 
+// 9. Test For Loops (C-style, For-In, Foreach, Arrays)
+console.log("\n9. Testing For Loops (C-style, For-In, Foreach, Arrays):");
+const forCode = `
+int sum = 0;
+for (int i = 1; i <= 3; i += 1)
+{
+  sum += i;
+}
+let items = [10, 20];
+for (item in items)
+{
+  sum += item;
+}
+print("Sum:", sum);
+`;
+const forLogs = [];
+run(forCode, { print: (...a) => forLogs.push(a.join(" ")) });
+if (forLogs[0] === "Sum: 36") {
+  console.log("  Success: C-style and for-in loops executed correctly! (" + forLogs[0] + ")");
+} else {
+  console.error("  Failure: loop execution output mismatch:", forLogs[0]);
+}
+
+const forA = parse("def l(a)\n{\n  for (x in a)\n  {\n    print(x);\n  }\n}").body[0];
+const forB = parse("fn l(a)\n{\n  foreach (let x of a)\n  {\n    print(x);\n  }\n}").body[0];
+if (hashAST(forA) === hashAST(forB)) {
+  console.log("  Success: 'for..in' and 'foreach..of' produced identical normalized hashes!");
+} else {
+  console.error("  Failure: loop hashes did not match!");
+}
+
 console.log("\nAll AnyLang tests passed!");

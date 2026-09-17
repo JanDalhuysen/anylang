@@ -116,6 +116,8 @@
       { name: "Statement", symbols: ["FunctionDeclaration"], postprocess: id },
       { name: "Statement", symbols: ["IfStatement"], postprocess: id },
       { name: "Statement", symbols: ["WhileStatement"], postprocess: id },
+      { name: "Statement", symbols: ["ForStatement"], postprocess: id },
+      { name: "Statement", symbols: ["ForInStatement"], postprocess: id },
       { name: "Statement", symbols: ["ReturnStatement"], postprocess: id },
       { name: "Statement", symbols: ["AssignmentStatement"], postprocess: id },
       { name: "Statement", symbols: ["ExpressionStatement"], postprocess: id },
@@ -223,6 +225,122 @@
           keyword: d[0].value,
           condition: d[2],
           body: d[4],
+        }),
+      },
+      { name: "ForStatement$ebnf$1", symbols: ["ForInit"], postprocess: id },
+      {
+        name: "ForStatement$ebnf$1",
+        symbols: [],
+        postprocess: function (d) {
+          return null;
+        },
+      },
+      { name: "ForStatement$ebnf$2", symbols: ["Expression"], postprocess: id },
+      {
+        name: "ForStatement$ebnf$2",
+        symbols: [],
+        postprocess: function (d) {
+          return null;
+        },
+      },
+      { name: "ForStatement$ebnf$3", symbols: ["ForUpdate"], postprocess: id },
+      {
+        name: "ForStatement$ebnf$3",
+        symbols: [],
+        postprocess: function (d) {
+          return null;
+        },
+      },
+      {
+        name: "ForStatement",
+        symbols: [
+          lexer.has("kw_for") ? { type: "kw_for" } : kw_for,
+          lexer.has("lparen") ? { type: "lparen" } : lparen,
+          "ForStatement$ebnf$1",
+          lexer.has("semicolon") ? { type: "semicolon" } : semicolon,
+          "ForStatement$ebnf$2",
+          lexer.has("semicolon") ? { type: "semicolon" } : semicolon,
+          "ForStatement$ebnf$3",
+          lexer.has("rparen") ? { type: "rparen" } : rparen,
+          "Block",
+        ],
+        postprocess: (d) => ({
+          type: "ForStatement",
+          keyword: d[0].value,
+          init: d[2] || null,
+          test: d[4] || null,
+          update: d[6] || null,
+          body: d[8],
+        }),
+      },
+      { name: "ForInit$ebnf$1$subexpression$1", symbols: [lexer.has("assign_op") ? { type: "assign_op" } : assign_op, "Expression"] },
+      { name: "ForInit$ebnf$1", symbols: ["ForInit$ebnf$1$subexpression$1"], postprocess: id },
+      {
+        name: "ForInit$ebnf$1",
+        symbols: [],
+        postprocess: function (d) {
+          return null;
+        },
+      },
+      {
+        name: "ForInit",
+        symbols: [lexer.has("kw_var") ? { type: "kw_var" } : kw_var, lexer.has("identifier") ? { type: "identifier" } : identifier, "ForInit$ebnf$1"],
+        postprocess: (d) => ({
+          type: "VariableDeclaration",
+          keyword: d[0].value,
+          name: d[1].value,
+          value: d[2] ? d[2][1] : null,
+        }),
+      },
+      {
+        name: "ForInit",
+        symbols: ["PostfixExpression", lexer.has("assign_op") ? { type: "assign_op" } : assign_op, "Expression"],
+        postprocess: (d) => ({
+          type: "AssignmentStatement",
+          target: d[0],
+          operator: d[1].value,
+          value: d[2],
+        }),
+      },
+      { name: "ForInit", symbols: ["Expression"], postprocess: id },
+      {
+        name: "ForUpdate",
+        symbols: ["PostfixExpression", lexer.has("assign_op") ? { type: "assign_op" } : assign_op, "Expression"],
+        postprocess: (d) => ({
+          type: "AssignmentStatement",
+          target: d[0],
+          operator: d[1].value,
+          value: d[2],
+        }),
+      },
+      { name: "ForUpdate", symbols: ["Expression"], postprocess: id },
+      {
+        name: "ForInStatement",
+        symbols: [lexer.has("kw_for") ? { type: "kw_for" } : kw_for, lexer.has("lparen") ? { type: "lparen" } : lparen, "ForInVar", lexer.has("kw_in") ? { type: "kw_in" } : kw_in, "Expression", lexer.has("rparen") ? { type: "rparen" } : rparen, "Block"],
+        postprocess: (d) => ({
+          type: "ForInStatement",
+          keyword: d[0].value,
+          variableKeyword: d[2].keyword,
+          variable: d[2].name,
+          inKeyword: d[3].value,
+          iterable: d[4],
+          body: d[6],
+        }),
+      },
+      {
+        name: "ForInVar",
+        symbols: [lexer.has("kw_var") ? { type: "kw_var" } : kw_var, lexer.has("identifier") ? { type: "identifier" } : identifier],
+        postprocess: (d) => ({
+          keyword: d[0].value,
+          name: d[1].value,
+        }),
+      },
+      {
+        name: "ForInVar",
+        symbols: [lexer.has("identifier") ? { type: "identifier" } : identifier],
+        postprocess: (d) => ({
+          keyword: null,
+          name: d[0].value,
         }),
       },
       {
@@ -356,6 +474,14 @@
                 type: "MemberExpression",
                 object: expr,
                 property: suffix.property,
+                computed: false,
+              };
+            } else if (suffix.type === "index") {
+              expr = {
+                type: "MemberExpression",
+                object: expr,
+                property: suffix.property,
+                computed: true,
               };
             }
           }
@@ -363,6 +489,7 @@
         },
       },
       { name: "PostfixSuffix", symbols: [lexer.has("dot") ? { type: "dot" } : dot, lexer.has("identifier") ? { type: "identifier" } : identifier], postprocess: (d) => ({ type: "member", property: d[1].value }) },
+      { name: "PostfixSuffix", symbols: [lexer.has("lbracket") ? { type: "lbracket" } : lbracket, "Expression", lexer.has("rbracket") ? { type: "rbracket" } : rbracket], postprocess: (d) => ({ type: "index", property: d[1] }) },
       { name: "PostfixSuffix$ebnf$1", symbols: ["ArgumentList"], postprocess: id },
       {
         name: "PostfixSuffix$ebnf$1",
@@ -449,6 +576,43 @@
         }),
       },
       { name: "PrimaryExpression", symbols: [lexer.has("lparen") ? { type: "lparen" } : lparen, "Expression", lexer.has("rparen") ? { type: "rparen" } : rparen], postprocess: (d) => d[1] },
+      { name: "PrimaryExpression", symbols: ["ArrayLiteral"], postprocess: id },
+      { name: "ArrayLiteral$ebnf$1", symbols: ["ElementList"], postprocess: id },
+      {
+        name: "ArrayLiteral$ebnf$1",
+        symbols: [],
+        postprocess: function (d) {
+          return null;
+        },
+      },
+      {
+        name: "ArrayLiteral",
+        symbols: [lexer.has("lbracket") ? { type: "lbracket" } : lbracket, "ArrayLiteral$ebnf$1", lexer.has("rbracket") ? { type: "rbracket" } : rbracket],
+        postprocess: (d) => ({
+          type: "ArrayLiteral",
+          elements: d[1] || [],
+        }),
+      },
+      { name: "ElementList$ebnf$1", symbols: [] },
+      { name: "ElementList$ebnf$1$subexpression$1", symbols: [lexer.has("comma") ? { type: "comma" } : comma, "Expression"] },
+      {
+        name: "ElementList$ebnf$1",
+        symbols: ["ElementList$ebnf$1", "ElementList$ebnf$1$subexpression$1"],
+        postprocess: function arrpush(d) {
+          return d[0].concat([d[1]]);
+        },
+      },
+      {
+        name: "ElementList",
+        symbols: ["Expression", "ElementList$ebnf$1"],
+        postprocess: (d) => {
+          const list = [d[0]];
+          for (const item of d[1]) {
+            list.push(item[1]);
+          }
+          return list;
+        },
+      },
     ],
     ParserStart: "Program",
   };

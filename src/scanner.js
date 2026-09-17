@@ -24,6 +24,7 @@ const baseLexer = moo.compile({
       kw_else: ["else", "otherwise", "elif", "elsif"],
       kw_while: ["while", "until", "repeat"],
       kw_for: ["for", "foreach", "loop"],
+      kw_in: ["in", "of"],
       kw_return: ["return", "give", "yield", "result"],
       kw_bool: ["true", "True", "TRUE", "yes", "false", "False", "FALSE", "no"],
       kw_null: ["null", "nil", "None", "undefined", "NULL"],

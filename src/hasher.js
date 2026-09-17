@@ -44,6 +44,21 @@ function normalizeAST(node) {
         normalized[key] = "while";
         continue;
       }
+      // Unify for keywords (for/foreach/loop -> for)
+      if ((node.type === "ForStatement" || node.type === "ForInStatement") && (node.keyword === "for" || node.keyword === "foreach" || node.keyword === "loop")) {
+        normalized[key] = "for";
+        continue;
+      }
+    }
+
+    // Unify ForInStatement in/of keywords and variable declarations
+    if (node.type === "ForInStatement" && key === "inKeyword") {
+      normalized[key] = "in";
+      continue;
+    }
+    if (node.type === "ForInStatement" && key === "variableKeyword") {
+      normalized[key] = null;
+      continue;
     }
 
     // Strip raw formatting representation from literals

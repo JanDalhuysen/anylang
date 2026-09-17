@@ -69,18 +69,18 @@ This document outlines targeted, actionable short-term goals and milestones for 
 
 ## Phase 2: Grammar & Runtime Enhancements
 
-- [ ] **Array & List Literals**
-  - [ ] Add array syntax `[item1, item2, item3]` to `src/grammar.ne`.
-  - [ ] Add array index access `arr[index]` to `src/grammar.ne` and `src/transpiler.js`.
-  - [ ] Add array dialect projection support to `src/formatter.js`.
+- [x] **Array & List Literals**
+  - [x] Add array syntax `[item1, item2, item3]` to `src/grammar.ne`.
+  - [x] Add array index access `arr[index]` to `src/grammar.ne` and `src/transpiler.js`.
+  - [x] Add array dialect projection support to `src/formatter.js`.
 
 - [ ] **Object & Dictionary Literals**
   - [ ] Add object literal syntax `{ "key": value, key2: value2 }` (handling brace newline disambiguation with blocks).
   - [ ] Support dictionary lookup `dict["key"]` and `dict.key`.
 
-- [ ] **For Loops & Iteration**
-  - [ ] Add `for (var item in collection)` / `for (item of collection)` / `foreach` loop construct in `src/grammar.ne`.
-  - [ ] Add transpilation and formatting for iterations.
+- [x] **For Loops & Iteration**
+  - [x] Add `for (var item in collection)` / `for (item of collection)` / `foreach` loop construct in `src/grammar.ne`.
+  - [x] Add transpilation and formatting for iterations.
 
 - [ ] **Comments & Docstrings**
   - [ ] Preserve docstrings in the AST for documentation projection and Unison metadata storage.

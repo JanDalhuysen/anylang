@@ -139,6 +139,29 @@ function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
       return `${indent}while (${cond})\n${body}`;
     }
 
+    case "ForStatement": {
+      const init = ast.init ? formatDialect(ast.init, dialect, 0).replace(/;$/, "") : "";
+      const test = ast.test ? formatDialect(ast.test, dialect, 0) : "";
+      const update = ast.update ? formatDialect(ast.update, dialect, 0).replace(/;$/, "") : "";
+      const body = formatDialect(ast.body, dialect, indentLevel);
+      return `${indent}for (${init}; ${test}; ${update})\n${body}`;
+    }
+
+    case "ForInStatement": {
+      const iterable = formatDialect(ast.iterable, dialect, 0);
+      const body = formatDialect(ast.body, dialect, indentLevel);
+      if (dialect === "pythonic" || dialect === "rust") {
+        return `${indent}for ${ast.variable} in ${iterable}\n${body}`;
+      }
+      if (dialect === "csharp") {
+        return `${indent}foreach (var ${ast.variable} in ${iterable})\n${body}`;
+      }
+      if (dialect === "java") {
+        return `${indent}for (var ${ast.variable} : ${iterable})\n${body}`;
+      }
+      return `${indent}for (const ${ast.variable} of ${iterable})\n${body}`;
+    }
+
     case "ReturnStatement": {
       const arg = ast.argument ? ` ${formatDialect(ast.argument, dialect, 0)}` : "";
       const semi = dialect === "pythonic" ? "" : ";";
@@ -202,7 +225,21 @@ function formatDialect(ast, dialect = "csharp", indentLevel = 0) {
 
     case "MemberExpression": {
       const obj = formatDialect(ast.object, dialect, 0);
+      if (ast.computed) {
+        return `${obj}[${formatDialect(ast.property, dialect, 0)}]`;
+      }
       return `${obj}.${ast.property}`;
+    }
+
+    case "ArrayLiteral": {
+      const elements = ast.elements.map((e) => formatDialect(e, dialect, 0)).join(", ");
+      if (dialect === "rust") {
+        return `vec![${elements}]`;
+      }
+      if (dialect === "csharp" || dialect === "java") {
+        return `new[] { ${elements} }`;
+      }
+      return `[${elements}]`;
     }
 
     case "Identifier": {

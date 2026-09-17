@@ -109,6 +109,8 @@ Statement
      | FunctionDeclaration {% id %}
      | IfStatement         {% id %}
      | WhileStatement      {% id %}
+     | ForStatement        {% id %}
+     | ForInStatement      {% id %}
      | ReturnStatement     {% id %}
      | AssignmentStatement {% id %}
      | ExpressionStatement {% id %}
@@ -180,6 +182,75 @@ WhileStatement -> %kw_while %lparen Expression %rparen Block {%
     body: d[4]
   })
 %}
+
+# --- Loops: For (C-Style: for (init; test; update) { ... }) ---
+ForStatement -> %kw_for %lparen ForInit:? %semicolon Expression:? %semicolon ForUpdate:? %rparen Block {%
+  (d) => ({
+    type: "ForStatement",
+    keyword: d[0].value,
+    init: d[2] || null,
+    test: d[4] || null,
+    update: d[6] || null,
+    body: d[8]
+  })
+%}
+
+ForInit
+    -> %kw_var %identifier (%assign_op Expression):? {%
+        (d) => ({
+          type: "VariableDeclaration",
+          keyword: d[0].value,
+          name: d[1].value,
+          value: d[2] ? d[2][1] : null
+        })
+       %}
+     | PostfixExpression %assign_op Expression {%
+        (d) => ({
+          type: "AssignmentStatement",
+          target: d[0],
+          operator: d[1].value,
+          value: d[2]
+        })
+       %}
+     | Expression {% id %}
+
+ForUpdate
+    -> PostfixExpression %assign_op Expression {%
+        (d) => ({
+          type: "AssignmentStatement",
+          target: d[0],
+          operator: d[1].value,
+          value: d[2]
+        })
+       %}
+     | Expression {% id %}
+
+# --- Loops: For-In / Foreach (Iteration: for (var item in list) { ... }) ---
+ForInStatement -> %kw_for %lparen ForInVar %kw_in Expression %rparen Block {%
+  (d) => ({
+    type: "ForInStatement",
+    keyword: d[0].value,
+    variableKeyword: d[2].keyword,
+    variable: d[2].name,
+    inKeyword: d[3].value,
+    iterable: d[4],
+    body: d[6]
+  })
+%}
+
+ForInVar
+    -> %kw_var %identifier {%
+        (d) => ({
+          keyword: d[0].value,
+          name: d[1].value
+        })
+       %}
+     | %identifier {%
+        (d) => ({
+          keyword: null,
+          name: d[0].value
+        })
+       %}
 
 # --- Returns: return / give / yield / result ---
 ReturnStatement
@@ -306,7 +377,15 @@ PostfixExpression
               expr = {
                 type: "MemberExpression",
                 object: expr,
-                property: suffix.property
+                property: suffix.property,
+                computed: false
+              };
+            } else if (suffix.type === "index") {
+              expr = {
+                type: "MemberExpression",
+                object: expr,
+                property: suffix.property,
+                computed: true
               };
             }
           }
@@ -317,6 +396,9 @@ PostfixExpression
 PostfixSuffix
     -> %dot %identifier {%
         (d) => ({ type: "member", property: d[1].value })
+       %}
+     | %lbracket Expression %rbracket {%
+        (d) => ({ type: "index", property: d[1] })
        %}
      | %lparen ArgumentList:? %rparen {%
         (d) => ({ type: "call", arguments: d[1] || [] })
@@ -382,6 +464,24 @@ PrimaryExpression
      | %lparen Expression %rparen {%
         (d) => d[1]
        %}
+     | ArrayLiteral {% id %}
+
+ArrayLiteral -> %lbracket ElementList:? %rbracket {%
+  (d) => ({
+    type: "ArrayLiteral",
+    elements: d[1] || []
+  })
+%}
+
+ElementList -> Expression (%comma Expression):* {%
+  (d) => {
+    const list = [d[0]];
+    for (const item of d[1]) {
+      list.push(item[1]);
+    }
+    return list;
+  }
+%}
 
 
 

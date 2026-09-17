@@ -52,6 +52,20 @@ function transpile(ast, indentLevel = 0) {
       return `${indent}while (${cond})\n${body}`;
     }
 
+    case "ForStatement": {
+      const init = ast.init ? transpile(ast.init, 0).replace(/;$/, "") : "";
+      const test = ast.test ? transpile(ast.test, 0) : "";
+      const update = ast.update ? transpile(ast.update, 0).replace(/;$/, "") : "";
+      const body = transpile(ast.body, indentLevel);
+      return `${indent}for (${init}; ${test}; ${update})\n${body}`;
+    }
+
+    case "ForInStatement": {
+      const iterable = transpile(ast.iterable, 0);
+      const body = transpile(ast.body, indentLevel);
+      return `${indent}for (let ${ast.variable} of ${iterable})\n${body}`;
+    }
+
     case "ReturnStatement": {
       const arg = ast.argument ? ` ${transpile(ast.argument, 0)}` : "";
       return `${indent}return${arg};`;
@@ -94,7 +108,15 @@ function transpile(ast, indentLevel = 0) {
 
     case "MemberExpression": {
       const obj = transpile(ast.object, 0);
+      if (ast.computed) {
+        return `${obj}[${transpile(ast.property, 0)}]`;
+      }
       return `${obj}.${ast.property}`;
+    }
+
+    case "ArrayLiteral": {
+      const elements = ast.elements.map((e) => transpile(e, 0)).join(", ");
+      return `[${elements}]`;
     }
 
     case "Identifier": {
